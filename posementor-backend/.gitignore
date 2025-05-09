@@ -4,7 +4,11 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-
+/build/
+*.log
+*.env
+*.class
+out/
 ### STS ###
 .apt_generated
 .classpath
