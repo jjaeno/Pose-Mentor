@@ -31,8 +31,8 @@ public class PoseService {
     // 서비스가 시작될 때 한 번 실행됨 (디버깅용 로그 출력)
     @PostConstruct
     public void init() {
-        System.out.println("✅ PoseService 로드됨");
-        System.out.println("🌐 API URL: [" + poseApiUrl + "]");
+        System.out.println("PoseService loaded");
+        System.out.println("API URL: [" + poseApiUrl + "]");
     }
 
     /**
