@@ -44,8 +44,8 @@ public class GPTService {
 
         // GPT에 보낼 메시지 목록 구성
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", "You are a fitness coach who provides posture feedback."));
-        messages.add(Map.of("role", "user", "content", "Give feedback on this pose keypoints:\n" + keypointsJson));
+        messages.add(Map.of("role", "system", "content", "당신은 전문 운동 코치입니다. 사용자가 보낸 관절 좌표 데이터를 바탕으로 간단하고 명확한 자세 피드백을 제공합니다."));
+        messages.add(Map.of("role", "user", "content", "다음은 사용자의 관절 키포인트입니다:" + keypointsJson));
 
         requestBody.put("messages", messages);
 
@@ -63,7 +63,7 @@ public class GPTService {
             httpPost.setHeader("Content-Type", "application/json");
 
             // 6. 요청 본문(body) 설정
-            httpPost.setEntity(new StringEntity(json));
+            httpPost.setEntity(new StringEntity(json, "UTF-8"));
 
             // 7. 요청 실행 → 응답 수신
             HttpResponse response = httpClient.execute(httpPost);
@@ -80,8 +80,9 @@ public class GPTService {
                 Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
                 return (String) message.get("content");
             }
+            System.out.println("GPT 응답 원문 : " + responseBody);
         }
-
+        
         // 오류 없이도 GPT 응답이 비었을 경우
         return "No feedback generated.";
     }
