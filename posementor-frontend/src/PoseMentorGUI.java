@@ -14,11 +14,12 @@ public class PoseMentorGUI extends JFrame {
     private File selectedFile;        // 사용자가 업로드한 영상 파일
     private JTextArea feedbackArea;   // GPT 피드백 출력 창
     private JLabel loadingLabel;      // 로딩 메시지
-
+    private String exerciseName; //운동 종류
+    private JLabel updateLabel; //화면 넘어갈 때 라벨 업데이트
     // 생성자: 윈도우 초기 설정 및 화면 구성
     public PoseMentorGUI() {
         setTitle("PoseMentor 자세 분석");
-        setSize(300, 400);
+        setSize(500, 400);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // 화면 중앙 정렬
 
@@ -39,7 +40,7 @@ public class PoseMentorGUI extends JFrame {
     private JPanel createStartPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel label = new JLabel("PoseMentor에 오신 것을 환영합니다!", SwingConstants.CENTER);
-        label.setFont(new Font("맑은 고딕", Font.BOLD, 13));
+        label.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         label.setBorder(BorderFactory.createEmptyBorder(40, 0, 30, 0));
         panel.add(label, BorderLayout.NORTH);
         
@@ -57,6 +58,8 @@ public class PoseMentorGUI extends JFrame {
         // 확인 버튼 클릭 시 운동 이름이 입력되었는지 확인
         nextButton.addActionListener(e -> {
             if (!exerciseField.getText().isBlank()) {
+                exerciseName = exerciseField.getText();
+                updateLabel.setText(String.format("%s의 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!", exerciseName));
                 cardLayout.show(mainPanel, "upload"); // 업로드 화면으로 이동
             } else {
                 JOptionPane.showMessageDialog(this, "운동 이름을 입력하세요.");
@@ -69,18 +72,34 @@ public class PoseMentorGUI extends JFrame {
     // 영상 업로드 & 분석 버튼 화면
     private JPanel createUploadPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        JLabel label = new JLabel(
-            String.format("%s의 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!", exerciseField),
-            SwingConstants.CENTER
-        );
-        panel.add(label, BorderLayout.NORTH);
+        updateLabel = new JLabel("", SwingConstants.CENTER);
+        panel.add(updateLabel, BorderLayout.NORTH);
+        updateLabel.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        updateLabel.setBorder(BorderFactory.createEmptyBorder(40, 0, 50, 0));
 
-        JPanel btnPanel = new JPanel(new FlowLayout());
+
+        JPanel btnPanel = new JPanel();
+        btnPanel.setLayout(new BoxLayout(btnPanel, BoxLayout.Y_AXIS));
+
         JButton uploadBtn = new JButton("영상 업로드");
         JButton analyzeBtn = new JButton("분석 시작");
 
+
+
+
         btnPanel.add(uploadBtn);
+        uploadBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        uploadBtn.setMaximumSize(new Dimension(130, 50));
+        uploadBtn.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+
+        btnPanel.add(Box.createVerticalStrut(40));//버튼 간격
+
         btnPanel.add(analyzeBtn);
+        analyzeBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        analyzeBtn.setMaximumSize(new Dimension(130, 50));
+        analyzeBtn.setFont(new Font("맑은 고딕", Font.BOLD, 14));
+
+
         panel.add(btnPanel, BorderLayout.CENTER);
 
         // 영상 업로드 버튼
