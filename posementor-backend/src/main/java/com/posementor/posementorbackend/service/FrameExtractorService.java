@@ -36,16 +36,18 @@ public class FrameExtractorService {
 
             // 추출 간격 설정: 0.25초마다 1장 추출 → interval = fps * 0.25
             int intervalFrames = (int) (fps * 0.25); // 0.25초 간격 프레임 수
-            if (intervalFrames == 0) intervalFrames = 1; // 보호코드: 최소 1장씩 추출하도록 보정
+            if (intervalFrames == 0)
+                intervalFrames = 1; // 보호코드: 최소 1장씩 추출하도록 보정
 
             Frame frame; // 추출할 단일 프레임 객체
             Java2DFrameConverter converter = new Java2DFrameConverter(); // 프레임 → 이미지 변환기
-            int currentFrameIndex = 0;     // 전체 프레임 인덱스
-            int extractedCount = 0;        // 저장된 프레임 수
+            int currentFrameIndex = 0; // 전체 프레임 인덱스
+            int extractedCount = 0; // 저장된 프레임 수
 
             // 출력 디렉토리 생성 (없으면 새로 만듦)
             File outputDir = new File(outputDirPath);
-            if (!outputDir.exists()) outputDir.mkdirs();
+            if (!outputDir.exists())
+                outputDir.mkdirs();
 
             // 영상에서 프레임 하나씩 반복 추출
             while ((frame = grabber.grabImage()) != null) {
