@@ -10,12 +10,12 @@ import org.springframework.web.bind.annotation.*;
  */
 @RestController // 이 클래스는 REST API 요청을 처리하는 컨트롤러임을 나타냄
 @RequestMapping("/api/feedback") // 이 컨트롤러의 기본 URL 경로: /api/feedback
-public class FeedbackController {
+public class GptAPIController {
 
     // GPTService를 주입받음 (Spring이 자동으로 생성자 주입)
     private final GPTService gptService;
 
-    public FeedbackController(GPTService gptService) {
+    public GptAPIController(GPTService gptService) {
         this.gptService = gptService;
     }
 

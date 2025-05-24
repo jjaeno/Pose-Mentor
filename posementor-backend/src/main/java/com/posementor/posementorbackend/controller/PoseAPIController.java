@@ -15,7 +15,7 @@ import java.io.File;
 
 @RestController // 이 클래스는 REST API의 컨트롤러 역할을 한다
 @RequestMapping("/api") // 기본 요청 경로가 /api 로 시작됨
-public class PoseController {
+public class PoseAPIController {
 
     @Autowired
     private PoseService poseService; // 포즈 분석 서비스 주입
@@ -26,12 +26,12 @@ public class PoseController {
     @PostConstruct
     public void check() {
         // poseService 주입이 제대로 되었는지 확인 로그
-        System.out.println("🤖 PoseController 안에서 poseService 주입 상태: " + poseService);
+        System.out.println("🤖 PoseAPIController 안에서 poseService 주입 상태: " + poseService);
     }
 
     @PostConstruct
     public void init() {
-        System.out.println("✅ PoseController 로드 완료!");
+        System.out.println("✅ PoseAPIController 로드 완료!");
     }
 
     // API 연결 테스트용 엔드포인트 (GET /api/test)
@@ -61,7 +61,8 @@ public class PoseController {
             // ✅ Step 1. 업로드된 영상 파일을 서버에 저장
             String uploadDir = System.getProperty("user.dir") + "/uploads/";
             File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs(); // 저장 디렉토리가 없으면 생성
+            if (!dir.exists())
+                dir.mkdirs(); // 저장 디렉토리가 없으면 생성
 
             // 랜덤 파일명 생성 (UUID) → 중복 방지
             String fileName = UUID.randomUUID().toString() + ".mp4";
@@ -82,7 +83,7 @@ public class PoseController {
             // ✅ Step 5. 예외 발생 시 에러 메시지를 리스트로 감싸 반환
             List<String> error = new ArrayList<>();
             error.add("❌ 파일 처리 중 오류 발생: " + e.getMessage());
-            return ResponseEntity.internalServerError().body(error); 
+            return ResponseEntity.internalServerError().body(error);
         }
     }
 }
