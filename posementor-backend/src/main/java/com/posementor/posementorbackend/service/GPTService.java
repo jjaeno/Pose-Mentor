@@ -14,10 +14,27 @@ import java.util.*;
 
 /**
  * GPTService 클래스는 OpenAI의 ChatGPT API를 호출하여
- * 관절 좌표(keypoints) 데이터를 기반으로 자세 피드백을 생성하는 역할을 합니다.
+ * 관절 좌표(keypoints) 데이터를 기반으로 자세 피드백을 생성하는 역할을 함함
  */
 @Service
 public class GPTService {
+    String prompt = """
+You are a professional posture analysis AI.
+
+You will receive joint coordinate data from a workout pose. Analyze this data using simple math (differences in x and y values) to detect any imbalance, misalignment, or asymmetry in the user's posture.
+
+Rules:
+- If the left shoulder y-value is more than 5 pixels higher or lower than the right shoulder, mention shoulder tilt.
+- If the left and right knee x-values differ by more than 20 pixels, mention knee misalignment.
+- If the wrist y-values are significantly lower than the shoulders (more than 30 pixels), mention that the arms are too low.
+- If the ankle y-values differ by more than 10 pixels, mention foot imbalance.
+
+Provide feedback based only on the actual coordinates.
+
+Return your analysis in Korean. Keep the feedback short and specific (2~3 sentences).
+
+Now analyze the following:
+""";
 
     // application.properties에서 설정값 주입 받음
     @Value("${openai.api.key}")
@@ -38,43 +55,42 @@ public class GPTService {
      * @throws Exception API 요청 중 문제가 발생한 경우
      */
     public String getPoseFeedback(String keypointsJson) throws Exception {
-        // 1. 요청 본문 구성 (ChatGPT API 명세에 맞게 작성)
+        // 요청 본문 구성 (ChatGPT API 명세에 맞게 작성)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "gpt-3.5-turbo");  // 사용할 GPT 모델 지정
 
-        // GPT에 보낼 메시지 목록 구성
+        // GPT에 보낼 프롬프트 구성 -> 추후에 사용자가 입력한 운동 종류를 프롬포트에 동적으로 할당해 더욱 정교한 피드백 생성성
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", "당신은 전문 운동 코치입니다. 사용자가 보낸 관절 좌표 데이터를 바탕으로 간단하고 명확한 자세 피드백을 제공합니다."));
-        messages.add(Map.of("role", "user", "content", "다음은 사용자의 관절 키포인트입니다:" + keypointsJson));
+        messages.add(Map.of("role", "system", "content", prompt + keypointsJson));
 
         requestBody.put("messages", messages);
 
-        // 2. 자바 객체를 JSON 문자열로 변환
+        //자바 객체를 JSON 문자열로 변환
         String json = objectMapper.writeValueAsString(requestBody);
 
-        // 3. HttpClient 객체 생성
+        //HttpClient 객체 생성
         try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
 
-            // 4. POST 요청 객체 생성
+            //POST 요청 객체 생성
             HttpPost httpPost = new HttpPost(apiUrl);
 
-            // 5. 헤더 설정 (Authorization, Content-Type 등)
+            //헤더 설정 (Authorization, Content-Type 등)
             httpPost.setHeader("Authorization", "Bearer " + apiKey);
             httpPost.setHeader("Content-Type", "application/json");
 
-            // 6. 요청 본문(body) 설정
+            //요청 본문(body) 설정
             httpPost.setEntity(new StringEntity(json, "UTF-8"));
 
-            // 7. 요청 실행 → 응답 수신
+            //요청 실행 → 응답 수신
             HttpResponse response = httpClient.execute(httpPost);
 
-            // 8. 응답 내용을 문자열로 변환
+            //응답 내용을 문자열로 변환
             String responseBody = EntityUtils.toString(response.getEntity());
 
-            // 9. 응답 JSON 파싱
+            //응답 JSON 파싱
             Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
 
-            // 10. choices[0].message.content 를 꺼내서 반환
+            //choices[0].message.content 를 꺼내서 반환
             List<Map<String, Object>> choices = (List<Map<String, Object>>) result.get("choices");
             if (!choices.isEmpty()) {
                 Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");

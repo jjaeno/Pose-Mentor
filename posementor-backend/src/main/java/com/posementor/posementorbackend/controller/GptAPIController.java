@@ -6,13 +6,13 @@ import org.springframework.web.bind.annotation.*;
 
 /**
  * 이 컨트롤러는 클라이언트로부터 관절 좌표 데이터를 받아서
- * GPTService를 통해 자세 피드백을 생성하고 반환하는 역할을 합니다.
+ * GPTService를 통해 자세 피드백을 생성하고 반환함함
  */
-@RestController // 이 클래스는 REST API 요청을 처리하는 컨트롤러임을 나타냄
+@RestController
 @RequestMapping("/api/feedback") // 이 컨트롤러의 기본 URL 경로: /api/feedback
 public class GptAPIController {
 
-    // GPTService를 주입받음 (Spring이 자동으로 생성자 주입)
+    // GPTService를 주입받음
     private final GPTService gptService;
 
     public GptAPIController(GPTService gptService) {

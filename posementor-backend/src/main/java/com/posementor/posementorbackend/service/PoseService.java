@@ -15,7 +15,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
 
-@Service // 이 클래스는 스프링의 서비스 컴포넌트로 등록됨 (비즈니스 로직 담당)
+@Service
 public class PoseService {
 
     // application.properties에서 RapidAPI 관련 설정값들을 주입받음
@@ -41,17 +41,18 @@ public class PoseService {
      * @param allFrames 전체 프레임 이미지 리스트
      * @return 각 대표 프레임의 포즈 분석 결과(JSON 문자열) 리스트
      */
+
     public List<String> analyzeSelectedFrames(List<File> allFrames) throws Exception {
         int size = allFrames.size();
 
         // 프레임 수가 3개 미만이면 분석 불가능 → 예외 발생
         if (size < 3) throw new IllegalArgumentException("프레임 수가 3개 이상이어야 합니다.");
 
-        // 대표 프레임 3개 선정 (처음, 중간, 마지막 프레임)
+        // 대표 프레임 3개 선정 (처음, 중간, 마지막 프레임) -> 토근 비용 문제로 인해서 3개로 제한 추후에 정밀한 분석을 요구할 때 추가 가능능
         List<File> selectedFrames = List.of(
-                allFrames.get(0),               // 첫 프레임 (예: 어드레스 자세)
-                allFrames.get(size / 2),        // 중간 프레임 (예: 임팩트 또는 스윙)
-                allFrames.get(size - 1)         // 마지막 프레임 (예: 피니시 자세)
+                allFrames.get(0),            
+                allFrames.get(size / 2),       
+                allFrames.get(size - 1)        
         );
 
         // HTTP 요청을 위한 클라이언트 객체 생성

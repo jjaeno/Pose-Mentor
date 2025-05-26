@@ -41,7 +41,7 @@ public class PoseMentorGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         JLabel label = new JLabel("PoseMentor에 오신 것을 환영합니다!", SwingConstants.CENTER);
         label.setFont(new Font("맑은 고딕", Font.BOLD, 18));
-        label.setBorder(BorderFactory.createEmptyBorder(40, 0, 30, 0));
+        label.setBorder(BorderFactory.createEmptyBorder(40, 0, 50, 0));
         panel.add(label, BorderLayout.NORTH);
         
 
@@ -59,7 +59,7 @@ public class PoseMentorGUI extends JFrame {
         nextButton.addActionListener(e -> {
             if (!exerciseField.getText().isBlank()) {
                 exerciseName = exerciseField.getText();
-                updateLabel.setText(String.format("%s의 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!", exerciseName));
+                updateLabel.setText(String.format("사용자의 %s 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!", exerciseName));
                 cardLayout.show(mainPanel, "upload"); // 업로드 화면으로 이동
             } else {
                 JOptionPane.showMessageDialog(this, "운동 이름을 입력하세요.");
@@ -162,9 +162,9 @@ public class PoseMentorGUI extends JFrame {
             @Override
             protected String doInBackground() throws Exception {
                 // 실제 GPT 서버에 요청 보낼 수 있는 부분
-                Thread.sleep(3000); // 3초 대기 (예시용)
+                Thread.sleep(3000); // 3초 대기(수정 예정정)
                 String exercise = exerciseField.getText();
-                return "운동 종류: " + exercise + "\n✅ 허리 각도가 올바릅니다!\n❌ 무릎이 너무 앞으로 나갔어요!";
+                return "운동 종류: " + exercise + "\n✅ 허리 각도가 올바릅니다!\n❌ 무릎이 너무 앞으로 나갔어요!"; //예시 피드백(추후 api 연동 예정정)
             }
 
             @Override
