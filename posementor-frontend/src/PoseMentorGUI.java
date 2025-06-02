@@ -45,17 +45,6 @@ public class PoseMentorGUI extends JFrame {
         panel.add(label, BorderLayout.NORTH);
         
 
-        // JPanel inputPanel = new JPanel(new FlowLayout());
-        // exerciseField = new JTextField(20); // 운동 이름 입력칸
-
-        // JButton nextButton = new JButton("확인");
-
-        // inputPanel.add(new JLabel("피드백 받을 운동 이름 입력: "));
-        // inputPanel.add(exerciseField);
-        // inputPanel.add(nextButton);
-
-        // panel.add(inputPanel, BorderLayout.CENTER);
-        // 수정 예정
         JPanel buttonPanel = new JPanel(new GridLayout(2, 3, 10, 10));
         String[] selectExercise = {"헬스", "골프", "볼링", "야구", "당구", "농구"};
 
@@ -180,7 +169,23 @@ public class PoseMentorGUI extends JFrame {
         SwingWorker<String, Void> worker = new SwingWorker<>() {
             @Override
             protected String doInBackground() throws Exception {
-                // 실제 GPT 서버에 요청 보낼 수 있는 부분
+                //운동 이름을 영어 enum으로 매핑
+                String exerciseEnum = mapExerciseNameToEnum(exerciseName);
+                //POST 요청
+                HttpClient client = HttpClient.newHttpClient();
+                HttpRequest.BodyPublisher bodyPublisher = ofMimeMultipartData(selectedFile, exerciseEnum);
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/api/analyze"))
+                    .header("Content-Type", "multipart/form-data; boundary=---PoseMentorBoundary")
+                    .POST(bodyPublisher)
+                    .build();
+
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+                return response.body(); // 서버의 피드백 결과 반환
+            
+
+
                 Thread.sleep(3000); // 3초 대기(수정 예정정)
                 String exercise = exerciseField.getText();
                 return "운동 종류: " + exercise + "\n✅ 허리 각도가 올바릅니다!\n❌ 무릎이 너무 앞으로 나갔어요!"; //예시 피드백(추후 api 연동 예정정)
@@ -200,6 +205,43 @@ public class PoseMentorGUI extends JFrame {
         };
         worker.execute(); // 작업 실행
     }
+    //운동 종류 영어 enum 매핑 메서드
+    private String mapExerciseNameToEnum(String kor) {
+        return switch (kor) {
+            case "헬스" -> "FITNESS";
+            case "골프" -> "GOLF";
+            case "볼링" -> "BOWLING";
+            case "야구" -> "BASEBALL";
+            case "당구" -> "BILLIARDS";
+            case "농구" -> "BASKETBALL";
+            default -> "FITNESS"; // 기본값
+        };
+    }
+    //파일+텍스트를 multipart로 전송해주는 커스텀 함수
+    private static HttpRequest.BodyPublisher ofMimeMultipartData(File file, String exercise) throws IOException {
+        var boundary = "---PoseMentorBoundary";
+        var byteArrays = new ArrayList<byte[]>();
+
+        // 1. exerciseType 파트
+        byteArrays.add(("--" + boundary + "\r\n").getBytes());
+        byteArrays.add("Content-Disposition: form-data; name=\"exerciseType\"\r\n\r\n".getBytes());
+        byteArrays.add(exercise.getBytes());
+        byteArrays.add("\r\n".getBytes());
+
+        // 2. file 파트
+        byteArrays.add(("--" + boundary + "\r\n").getBytes());
+        byteArrays.add(("Content-Disposition: form-data; name=\"video\"; filename=\"" + file.getName() + "\"\r\n").getBytes());
+        byteArrays.add("Content-Type: video/mp4\r\n\r\n".getBytes());
+        byteArrays.add(Files.readAllBytes(file.toPath()));
+        byteArrays.add("\r\n".getBytes());
+
+        // 3. 종료
+        byteArrays.add(("--" + boundary + "--\r\n").getBytes());
+
+        return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
+    }
+
+
 
     // 프로그램 시작 지점
     public static void main(String[] args) {
