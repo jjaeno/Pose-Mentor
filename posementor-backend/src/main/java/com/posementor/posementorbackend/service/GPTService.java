@@ -9,7 +9,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import com.posementor.posementorbackend.util.PoseJsonCompressor;;;
 import java.util.*;
 
 /**
@@ -18,7 +18,7 @@ import java.util.*;
  */
 @Service
 public class GPTService {
-    String prompt = """
+    String promptHeader = """
 You are a professional posture analysis AI.
 
 You will receive joint coordinate data from a workout pose. Analyze this data using simple math (differences in x and y values) to detect any imbalance, misalignment, or asymmetry in the user's posture.
@@ -54,14 +54,23 @@ Now analyze the following:
      * @return GPT가 생성한 자세 피드백 문자열
      * @throws Exception API 요청 중 문제가 발생한 경우
      */
-    public String getPoseFeedback(String keypointsJson) throws Exception {
+    public String getPoseFeedback(List<String> keypointsJsonList, String exerciseType) throws Exception {
         // 요청 본문 구성 (ChatGPT API 명세에 맞게 작성)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "gpt-3.5-turbo");  // 사용할 GPT 모델 지정
+        //관절 좌표 요약약
+        List<String> kp = PoseJsonCompressor.compress(keypointsJsonList);
 
         // GPT에 보낼 프롬프트 구성 -> 추후에 사용자가 입력한 운동 종류를 프롬포트에 동적으로 할당해 더욱 정교한 피드백 생성성
+        StringBuilder fullPrompt = new StringBuilder();
+        fullPrompt.append(promptHeader);
+        fullPrompt.append("\n운동 종류: ").append(exerciseType);
+        fullPrompt.append("\n관절 좌표들: ");
+        for(String json : kp) { 
+            fullPrompt.append("\n").append(json);
+        }
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", prompt + keypointsJson));
+        messages.add(Map.of("role", "system", "content", fullPrompt.toString()));
 
         requestBody.put("messages", messages);
 

@@ -7,28 +7,15 @@ import com.fasterxml.jackson.databind.node.*;
 import java.util.*;
 
 /**
- * PoseJsonCompressor
- * ──────────────────
- *  • 필요 없는 관절(keypoint) 삭제
- *  • 좌표 x, y  → 소수점 1자리로 반올림
- *  • score     → 소수점 1자리로 반올림 (프레임 전체·관절별 모두)
- *
- *  사용:
- *      String slim = PoseJsonCompressor.compress(rawJson,
- *                      PoseJsonCompressor.ExerciseType.GOLF);
+ * PoseJsonCompressor (리스트<JSON 문자열> 받아서 프레임별로 정제 후 리스트<String> 반환)
+ * ───────────────────────────────────────────────
+ *  • 불필요 관절 제거 (CORE_PARTS만 유지)
+ *  • 각 좌표(x, y) 및 score 값을 소수점 1자리로 반올림
+ *  • 프레임별 JSON 객체를 String으로 반환하여 List<String> 형태로 제공
  */
 public final class PoseJsonCompressor {
 
-    /* ────────────────────────────────────────────────────────────── *
-     *  1) 운동 종목 정의
-     * ────────────────────────────────────────────────────────────── */
-    public enum ExerciseType {
-        FITNESS, GOLF, BOWLING, BASEBALL, BILLIARDS, BASKETBALL
-    }
-
-    /* ────────────────────────────────────────────────────────────── *
-     *  2) 공통으로 남길 12개 핵심 관절
-     * ────────────────────────────────────────────────────────────── */
+    // 유지할 핵심 관절 목록 (12개)
     private static final Set<String> CORE_PARTS = Set.of(
             "leftShoulder",  "rightShoulder",
             "leftElbow",     "rightElbow",
@@ -38,74 +25,48 @@ public final class PoseJsonCompressor {
             "leftAnkle",     "rightAnkle"
     );
 
-    /* ────────────────────────────────────────────────────────────── *
-     *  3) 종목별 관절 매핑 (필요 시 개별 튜닝 가능)
-     * ────────────────────────────────────────────────────────────── */
-    private static final Map<ExerciseType, Set<String>> RELEVANT_PARTS = Map.of(
-            ExerciseType.FITNESS,    CORE_PARTS,
-            ExerciseType.GOLF,       CORE_PARTS,
-            ExerciseType.BOWLING,    CORE_PARTS,
-            ExerciseType.BASEBALL,   CORE_PARTS,
-            ExerciseType.BILLIARDS,  CORE_PARTS,
-            ExerciseType.BASKETBALL, CORE_PARTS
-    );
-
-    /* ────────────────────────────────────────────────────────────── */
-    private PoseJsonCompressor() {}   // 정적 유틸리티
-
-    /* ────────────────────────────────────────────────────────────── *
-     *  Public API
-     * ────────────────────────────────────────────────────────────── */
+    private PoseJsonCompressor() {} // static-only class
 
     /**
-     * @param rawJson   Pose API 응답(JSON 문자열 - 배열/객체 모두 OK)
-     * @param exercise  운동 종목(enum)
-     * @return          불필요 관절 제거 + 좌표·score 1자리 반올림 JSON
+     * @param rawJsonList 프레임별 원본 JSON 문자열 리스트
+     * @return 각 프레임에 대해 정제된 JSON 문자열 리스트
+     * @throws JsonProcessingException 파싱 실패 시
      */
-    public static String compress(String rawJson, ExerciseType exercise)
-            throws JsonProcessingException {
-
+    public static List<String> compress(List<String> rawJsonList) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(rawJson);
-        ArrayNode frames = mapper.createArrayNode();
+        List<String> result = new ArrayList<>();
 
-        if (root.isArray())            // 다중 프레임
-            root.forEach(node -> frames.add(rewriteFrame(node, exercise, mapper)));
-        else                           // 단일 프레임
-            frames.add(rewriteFrame(root, exercise, mapper));
+        for (String rawJson : rawJsonList) {
+            JsonNode node = mapper.readTree(rawJson);
+            ObjectNode rewritten = rewriteFrame(node, mapper);
+            result.add(mapper.writeValueAsString(rewritten));
+        }
 
-        return mapper.writeValueAsString(frames);
+        return result;
     }
 
-    /* ────────────────────────────────────────────────────────────── *
-     *  내부 로직
-     * ────────────────────────────────────────────────────────────── */
-
-    /** frameNode 1개를 변환해 반환 */
-    private static ObjectNode rewriteFrame(JsonNode frameNode,
-                                           ExerciseType ex,
-                                           ObjectMapper mapper) {
-
-        Set<String> keep = RELEVANT_PARTS.getOrDefault(ex, CORE_PARTS);
+    /**
+     * 프레임 1개의 keypoints 및 score 필드를 정제한 결과 반환
+     */
+    private static ObjectNode rewriteFrame(JsonNode frameNode, ObjectMapper mapper) {
         ObjectNode newFrame = frameNode.deepCopy();
 
-        /* (A) 프레임 전체 score 반올림 */
+        // (1) 전체 프레임 score 반올림
         if (newFrame.has("score")) {
             newFrame.put("score", round1(newFrame.get("score").asDouble()));
         }
 
-        /* (B) keypoints 배열 재구성 */
+        // (2) keypoints 필터링 + 정제
         ArrayNode newKeypoints = mapper.createArrayNode();
-
         frameNode.withArray("keypoints").forEach(kpOrig -> {
             String part = kpOrig.get("part").asText();
-            if (keep.contains(part)) {
+            if (CORE_PARTS.contains(part)) {
                 ObjectNode kp = kpOrig.deepCopy();
 
-                /* (B-1) 관절 score 반올림 */
+                // score 반올림
                 kp.put("score", round1(kp.get("score").asDouble()));
 
-                /* (B-2) 좌표 반올림 */
+                // 좌표 반올림
                 ObjectNode pos = (ObjectNode) kp.get("position");
                 pos.put("x", round1(pos.get("x").asDouble()));
                 pos.put("y", round1(pos.get("y").asDouble()));
@@ -118,8 +79,10 @@ public final class PoseJsonCompressor {
         return newFrame;
     }
 
-    /** 소수 첫째 자리로 반올림 */
-    private static double round1(double v) {
-        return Math.round(v * 10) / 10.0;
+    /**
+     * 소수점 첫째 자리로 반올림
+     */
+    private static double round1(double value) {
+        return Math.round(value * 10) / 10.0;
     }
 }
