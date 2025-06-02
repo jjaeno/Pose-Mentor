@@ -6,7 +6,7 @@ import java.io.File; // 파일 선택 기능
 // 메인 클래스: GUI 앱의 전체 구조 정의
 public class PoseMentorGUI extends JFrame {
 
-    private CardLayout cardLayout; // 여러 화면 전환을 위한 레이아웃
+    private CardLayout cardLayout; //화면 전환을 레이아웃
     private JPanel mainPanel;      // 각 화면 패널을 담는 메인 패널
 
     // 화면 간 공유할 컴포넌트들
@@ -16,10 +16,10 @@ public class PoseMentorGUI extends JFrame {
     private JLabel loadingLabel;      // 로딩 메시지
     private String exerciseName; //운동 종류
     private JLabel updateLabel; //화면 넘어갈 때 라벨 업데이트
-    // 생성자: 윈도우 초기 설정 및 화면 구성
+    // 생성자 구성
     public PoseMentorGUI() {
         setTitle("PoseMentor 자세 분석");
-        setSize(500, 400);
+        setSize(550, 400);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null); // 화면 중앙 정렬
 
@@ -45,39 +45,58 @@ public class PoseMentorGUI extends JFrame {
         panel.add(label, BorderLayout.NORTH);
         
 
-        JPanel inputPanel = new JPanel(new FlowLayout());
-        exerciseField = new JTextField(20); // 운동 이름 입력칸
-        JButton nextButton = new JButton("확인");
+        // JPanel inputPanel = new JPanel(new FlowLayout());
+        // exerciseField = new JTextField(20); // 운동 이름 입력칸
 
-        inputPanel.add(new JLabel("피드백 받을 운동 이름 입력: "));
-        inputPanel.add(exerciseField);
-        inputPanel.add(nextButton);
+        // JButton nextButton = new JButton("확인");
 
-        panel.add(inputPanel, BorderLayout.CENTER);
+        // inputPanel.add(new JLabel("피드백 받을 운동 이름 입력: "));
+        // inputPanel.add(exerciseField);
+        // inputPanel.add(nextButton);
 
-        // 확인 버튼 클릭 시 운동 이름이 입력되었는지 확인
-        nextButton.addActionListener(e -> {
-            if (!exerciseField.getText().isBlank()) {
-                exerciseName = exerciseField.getText();
+        // panel.add(inputPanel, BorderLayout.CENTER);
+        // 수정 예정
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 3, 10, 10));
+        String[] selectExercise = {"헬스", "골프", "볼링", "야구", "당구", "농구"};
+
+        for (String exercise : selectExercise) {
+            JButton btn = new JButton(exercise);
+            btn.addActionListener(e -> {
+                exerciseName = exercise;
                 updateLabel.setText(String.format("사용자의 %s 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!", exerciseName));
-                cardLayout.show(mainPanel, "upload"); // 업로드 화면으로 이동
-            } else {
-                JOptionPane.showMessageDialog(this, "운동 이름을 입력하세요.");
-            }
-        });
-
+                cardLayout.show(mainPanel, "upload");
+            });
+            buttonPanel.add(btn);
+        }        
+        JPanel centerWrap = new JPanel(new FlowLayout());
+        centerWrap.add(buttonPanel);
+        panel.add(centerWrap, BorderLayout.CENTER);
         return panel;
-    }
+        }
+
+    
 
     // 영상 업로드 & 분석 버튼 화면
     private JPanel createUploadPanel() {
         JPanel panel = new JPanel(new BorderLayout());
+        //상단바 : 뒤로가기 + 안내 텍스트트
+        JPanel topPanel = new JPanel(new BorderLayout());
+        JButton backButton = new JButton("←");
+        backButton.setFont(new Font("맑은 고딕", Font.BOLD, 18));
+        backButton.setMargin(new Insets(10, 10, 80, 0));
+        backButton.setFocusPainted(false);
+        backButton.setContentAreaFilled(false); // 배경 없애면 좀 더 자연스러움
+        backButton.setBorderPainted(false);
+        backButton.addActionListener(e -> cardLayout.show(mainPanel, "start"));
+
         updateLabel = new JLabel("", SwingConstants.CENTER);
         panel.add(updateLabel, BorderLayout.NORTH);
         updateLabel.setFont(new Font("맑은 고딕", Font.BOLD, 15));
-        updateLabel.setBorder(BorderFactory.createEmptyBorder(40, 0, 50, 0));
-
-
+        updateLabel.setBorder(BorderFactory.createEmptyBorder(40, 0, 50, 30));
+        topPanel.add(backButton, BorderLayout.WEST);
+        topPanel.add(updateLabel, BorderLayout.CENTER);
+        panel.add(topPanel, BorderLayout.NORTH);
+        //가운데 : 영상 업로드 + 분석 시작 버튼
         JPanel btnPanel = new JPanel();
         btnPanel.setLayout(new BoxLayout(btnPanel, BoxLayout.Y_AXIS));
 
