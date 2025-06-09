@@ -2,7 +2,18 @@ import javax.swing.*; // GUI 구성 요소들
 import java.awt.*; // 레이아웃, 색상 등
 import java.awt.event.*; // 버튼 클릭 이벤트
 import java.io.File; // 파일 선택 기능
-
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpRequest.BodyPublisher;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 // 메인 클래스: GUI 앱의 전체 구조 정의
 public class PoseMentorGUI extends JFrame {
 
@@ -16,6 +27,8 @@ public class PoseMentorGUI extends JFrame {
     private JLabel loadingLabel;      // 로딩 메시지
     private String exerciseName; //운동 종류
     private JLabel updateLabel; //화면 넘어갈 때 라벨 업데이트
+
+    private static final String BOUNDARY = "PoseMentorBoundary";
     // 생성자 구성
     public PoseMentorGUI() {
         setTitle("PoseMentor 자세 분석");
@@ -151,7 +164,6 @@ public class PoseMentorGUI extends JFrame {
         JButton retryBtn = new JButton("다른 운동 피드백 받기");
         retryBtn.addActionListener(e -> {
             // 입력/업로드 초기화 후 시작화면으로 복귀
-            exerciseField.setText("");
             selectedFile = null;
             feedbackArea.setText("");
             cardLayout.show(mainPanel, "start");
@@ -176,19 +188,13 @@ public class PoseMentorGUI extends JFrame {
                 HttpRequest.BodyPublisher bodyPublisher = ofMimeMultipartData(selectedFile, exerciseEnum);
                 HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create("http://localhost:8080/api/analyze"))
-                    .header("Content-Type", "multipart/form-data; boundary=---PoseMentorBoundary")
+                    .header("Content-Type", "multipart/form-data; boundary=" + BOUNDARY)
                     .POST(bodyPublisher)
                     .build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 return response.body(); // 서버의 피드백 결과 반환
-            
-
-
-                Thread.sleep(3000); // 3초 대기(수정 예정정)
-                String exercise = exerciseField.getText();
-                return "운동 종류: " + exercise + "\n✅ 허리 각도가 올바릅니다!\n❌ 무릎이 너무 앞으로 나갔어요!"; //예시 피드백(추후 api 연동 예정정)
             }
 
             @Override
@@ -219,24 +225,23 @@ public class PoseMentorGUI extends JFrame {
     }
     //파일+텍스트를 multipart로 전송해주는 커스텀 함수
     private static HttpRequest.BodyPublisher ofMimeMultipartData(File file, String exercise) throws IOException {
-        var boundary = "---PoseMentorBoundary";
         var byteArrays = new ArrayList<byte[]>();
 
         // 1. exerciseType 파트
-        byteArrays.add(("--" + boundary + "\r\n").getBytes());
+        byteArrays.add(("--" + BOUNDARY + "\r\n").getBytes());
         byteArrays.add("Content-Disposition: form-data; name=\"exerciseType\"\r\n\r\n".getBytes());
         byteArrays.add(exercise.getBytes());
         byteArrays.add("\r\n".getBytes());
 
         // 2. file 파트
-        byteArrays.add(("--" + boundary + "\r\n").getBytes());
-        byteArrays.add(("Content-Disposition: form-data; name=\"video\"; filename=\"" + file.getName() + "\"\r\n").getBytes());
+        byteArrays.add(("--" + BOUNDARY + "\r\n").getBytes());
+        byteArrays.add(("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"\r\n").getBytes());
         byteArrays.add("Content-Type: video/mp4\r\n\r\n".getBytes());
         byteArrays.add(Files.readAllBytes(file.toPath()));
         byteArrays.add("\r\n".getBytes());
 
         // 3. 종료
-        byteArrays.add(("--" + boundary + "--\r\n").getBytes());
+        byteArrays.add(("--" + BOUNDARY + "--\r\n").getBytes());
 
         return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
     }
