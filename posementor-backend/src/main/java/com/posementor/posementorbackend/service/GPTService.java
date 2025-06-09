@@ -9,8 +9,12 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import com.posementor.posementorbackend.util.PoseJsonCompressor;;;
+import com.posementor.posementorbackend.util.PoseJsonCompressor;
+
+import jakarta.annotation.PostConstruct;
+
 import java.util.*;
+
 
 /**
  * GPTService 클래스는 OpenAI의 ChatGPT API를 호출하여
@@ -42,10 +46,14 @@ Now analyze the following:
 
     @Value("${openai.api.url}")
     private String apiUrl;
+    @PostConstruct
+    public void init() {
+        System.out.println("GPTService loaded");
+    }
 
     // Jackson의 ObjectMapper는 자바 객체 ↔ JSON 변환을 도와주는 유틸리티
     private final ObjectMapper objectMapper = new ObjectMapper();
-
+    
     /**
      * 관절 좌표 JSON 데이터를 GPT에게 보내고,
      * 분석 피드백을 받아 문자열로 반환하는 메서드
@@ -55,20 +63,23 @@ Now analyze the following:
      * @throws Exception API 요청 중 문제가 발생한 경우
      */
     public String getPoseFeedback(List<String> keypointsJsonList, String exerciseType) throws Exception {
+        System.out.println("GPT method call complete");
         // 요청 본문 구성 (ChatGPT API 명세에 맞게 작성)
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("model", "gpt-3.5-turbo");  // 사용할 GPT 모델 지정
-        //관절 좌표 요약약
+        //관절 좌표 요약
         List<String> kp = PoseJsonCompressor.compress(keypointsJsonList);
+        System.out.println("Compressor Result :" + kp);
 
         // GPT에 보낼 프롬프트 구성 -> 추후에 사용자가 입력한 운동 종류를 프롬포트에 동적으로 할당해 더욱 정교한 피드백 생성성
         StringBuilder fullPrompt = new StringBuilder();
         fullPrompt.append(promptHeader);
-        fullPrompt.append("\n운동 종류: ").append(exerciseType);
-        fullPrompt.append("\n관절 좌표들: ");
+        fullPrompt.append("\nExercise Type: ").append(exerciseType);
+        fullPrompt.append("\njoint keypoints: ");
         for(String json : kp) { 
             fullPrompt.append("\n").append(json);
         }
+        System.out.println("Full frompt : " + fullPrompt);
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", fullPrompt.toString()));
 
@@ -95,7 +106,7 @@ Now analyze the following:
 
             //응답 내용을 문자열로 변환
             String responseBody = EntityUtils.toString(response.getEntity());
-
+            System.out.println("GPT respone : " + responseBody);
             //응답 JSON 파싱
             Map<String, Object> result = objectMapper.readValue(responseBody, Map.class);
 
@@ -105,7 +116,11 @@ Now analyze the following:
                 Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
                 return (String) message.get("content");
             }
-            System.out.println("GPT 응답 원문 : " + responseBody);
+
+        }
+        catch (Exception e) {
+            System.out.println("GPT call Fail" + e.getMessage());
+            e.printStackTrace();
         }
         
         // 오류 없이도 GPT 응답이 비었을 경우
