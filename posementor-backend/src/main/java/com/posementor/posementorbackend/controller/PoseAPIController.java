@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.io.File;
+// ↓ 정확한 org.json 클래스명으로 변경
+import org.json.JSONObject;
+import org.json.JSONArray;
 
 @RestController
 @RequestMapping("/api") // 기본 요청 경로가 /api
@@ -24,6 +27,7 @@ public class PoseAPIController {
     private FrameExtractorService frameExtractorService; // 프레임 추출 서비스
     @Autowired
     private GPTService gptService;
+
     @PostConstruct
     public void check() {
         // poseService 주입이 제대로 되었는지 확인 로그
@@ -49,7 +53,6 @@ public class PoseAPIController {
      * 3. 대표 프레임 3장을 선택해 Pose API로 분석 요청
      * 4. 분석 결과(JSON 문자열)를 리스트로 반환
      */
-
     @PostMapping("/analyze")
     public ResponseEntity<String> analyzeVideo(@RequestParam("file") MultipartFile file, @RequestParam("exerciseType") String exerciseType) {
         //업로드 파일이 없으면 오류 응답
@@ -65,36 +68,57 @@ public class PoseAPIController {
                 dir.mkdirs(); // 저장 디렉토리가 없으면 생성
 
             //랜덤 파일명 생성 (UUID) → 중복 방지
-            String fileName = UUID.randomUUID().toString() + ".mp4";
+            String uuid = UUID.randomUUID().toString();
+            String fileName = uuid + ".mp4";
             File savedFile = new File(uploadDir + fileName);
             file.transferTo(savedFile); // MultipartFile을 실제 파일로 저장
             System.out.println("File create complete");
 
             //영상에서 프레임 추출(0.25초 간격) -> frameExtractorService.java 이용
-            String frameDir = System.getProperty("user.dir") + "/frames/" + System.currentTimeMillis(); // 프레임 저장 디렉토리
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String frameDir = System.getProperty("user.dir") + "/frames/" + timestamp; // 프레임 저장 디렉토리
             List<File> frames = frameExtractorService.extractFramesEveryHalfSecond(savedFile, frameDir);
-            //frmaes가 존재하면 -> 로그 출력
             if (frames != null && !frames.isEmpty()) {
-            System.out.println("Frame extract Success");
+                System.out.println("Frame extract Success");
+            } else {
+                System.out.println("Frame extract Fail");
             }
-            else System.out.println("Frame extract Fail");
-            //대표 프레임 3장 선택하고 pose api에 전송 후 결과 받음음 -> PoseService.java 이용
+
+            //대표 프레임 3장 선택하고 pose api에 전송 후 결과 받음 -> PoseService.java 이용
             List<String> keypoints = poseService.analyzeSelectedFrames(frames);
             if (keypoints != null && !keypoints.isEmpty()) {
                 System.out.println("Keypoints Create success");
+            } else {
+                System.out.println("Keypoints Create Fail");
             }
-            else System.out.println("Keypoints Create Fail");
+
             String feedback = gptService.getPoseFeedback(keypoints, exerciseType);
             if (feedback != null && !feedback.isEmpty()) {
                 System.out.println("feedback Create success");
+            } else {
+                System.out.println("feedback Create Fail");
             }
-            else System.out.println("feedback Create Fail");
-            //클라이언트에 분석 결과 반환
-            return ResponseEntity.ok().body(feedback);
+
+            // === JSON 응답 생성 ===
+            JSONObject responseJson = new JSONObject();
+            responseJson.put("feedback", feedback);
+            responseJson.put("videoUrl", "http://localhost:8080/uploads/" + fileName);
+
+            JSONArray frameUrls = new JSONArray();
+            for (File frame : frames) {
+                String name = frame.getName();
+                String url  = "http://localhost:8080/frames/" + timestamp + "/" + name;
+                frameUrls.put(url);
+            }
+            responseJson.put("frames", frameUrls);
+
+            return ResponseEntity.ok().body(responseJson.toString());
+            // ========================
 
         } catch (Exception e) {
-            //예외 발생 시 에러 메시지를 리스트로 감싸 반환
-            return ResponseEntity.internalServerError().body("파일 처리 중 오류 발생생");
+            e.printStackTrace();
+            //예외 발생 시 에러 메시지를 반환
+            return ResponseEntity.internalServerError().body("파일 처리 중 오류 발생");
         }
     }
 }

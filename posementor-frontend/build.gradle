@@ -1,0 +1,21 @@
+plugins {
+    id 'java'
+    // application 플러그인이 이미 있다면 OK, 없으면 아래 추가
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.formdev:flatlaf:3.6'   
+    implementation 'com.miglayout:miglayout-swing:11.0'
+    // 필요하면 IntelliJ 테마 팩도
+    // implementation 'com.formdev:flatlaf-intellij-themes:3.6'
+}
+
+application {
+    // 이미 지정돼 있으면 유지
+    mainClass = 'PoseMentorGUI'
+}

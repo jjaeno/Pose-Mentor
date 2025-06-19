@@ -22,24 +22,78 @@ import java.util.*;
  */
 @Service
 public class GPTService {
-    String promptHeader = """
-You are a professional posture analysis AI.
+    private static final String COMMON_STRING = """
+You are a Ph.D.-level sports medicine and rehabilitation specialist with 10 years of performance-coaching experience.
 
-You will receive joint coordinate data from a workout pose. Analyze this data using simple math (differences in x and y values) to detect any imbalance, misalignment, or asymmetry in the user's posture.
+◎ Workflow  
+1. **First**, you will receive *exerciseType* and the block of **“ideal posture checkpoints”** for that exercise.  
+2. Next, you will receive the actual joint-coordinate data (JSON).  
+3. Compare the coordinates with the checkpoints, diagnose any issues, and write corrective feedback.
 
-Rules:
-- If the left shoulder y-value is more than 5 pixels higher or lower than the right shoulder, mention shoulder tilt.
-- If the left and right knee x-values differ by more than 20 pixels, mention knee misalignment.
-- If the wrist y-values are significantly lower than the shoulders (more than 30 pixels), mention that the arms are too low.
-- If the ankle y-values differ by more than 10 pixels, mention foot imbalance.
+◎ Feedback guidelines  
+• Output **4~5 sentences in Korean**.  
+  ① Diagnose the problem → ② Provide specific corrective advice.  
+• **Never reveal raw numbers** (pixels, coordinates, angles).  
+• Use **1~2 discipline-appropriate technical terms** for professionalism.  
+• Insert line breaks where appropriate to improve readability.
 
-Provide feedback based only on the actual coordinates.
+◎ Internal decision rules *(do NOT expose to user)*  
+• Shoulder Δy > 5 → shoulder tilt  
+• Knee Δx > 20 → knee misalignment  
+• Wrist y 30 lower than shoulder → wrists too low  
+• Ankle Δy > 10 → foot imbalance  
 
-Return your analysis in Korean. Keep the feedback short and specific (2~3 sentences).
-
-Now analyze the following:
+Below, the inputs will follow in this order:  
+① *exerciseType* & its ideal-posture checkpoints  
+② The actual joint-coordinate JSON.  
+Begin your analysis now, and **return your feedback in Korean**.
 """;
+    private static final Map<String,String> CANONICAL = Map.of(
+         "GOLF", """
+GOLF – Swing Address (Driver)
+• Shoulders: perfectly level; chest opened slightly toward 1 o’clock (RH golfer). 
+• Spine & pelvis: hip hinge forward without lumbar hyper-extension; maintain natural spine curve. 
+• Knees: slight flexion, feet shoulder-width; equal gap left/right. 
+• Arms: maintain triangle with neutral wrists; keep space between clubhead and navel. 
+• Weight: 55 % on lead (left) foot, 45 % on trail (right) foot; light adductor tension in both legs.
+""",
+    "BASEBALL", """
+BASEBALL – Right-handed Batting Stance
+• Feet: shoulder-width; front foot 11 o’clock, back foot 1 o’clock. 
+• Knees: soft flexion for elasticity; 60 % weight on rear foot, 40 % on front. 
+• Hips & spine: hip-hinge forward, spine neutral. 
+• Hands/Bat: hands at shoulder height; bat head tilted slightly backward. 
+• Gaze: both eyes squarely on the pitcher.
+""",
+    "BOWLING", """
+BOWLING – Release Position
+• Shoulders/Arm: shoulders stay closed as the ball passes the ankle. 
+• Spine: upper and lower body form a straight line at 15–20° forward tilt. 
+• Lead foot: sliding heel up, weight on forefoot; knee softly flexed. 
+• Trail leg: extended diagonally on the floor for balance. 
+• Gaze: fixed on the release target (break-point).
+""",
+    "BILLIARDS", """
+BILLIARDS – Cue-Stroke Address
+• Feet: lead foot 45°, trail foot 90°, creating a stable triangle; slightly wider than shoulders. 
+• Knees & hips: lead knee softly flexed to lower the center of gravity. 
+• Spine: torso nearly parallel to the table; avoid lumbar hyper-flexion. 
+• Arms: bridge hand fixed; only the cueing elbow and forearm move freely. 
+• Gaze: align cue tip, object ball, and pocket on a straight line.
+""",
+    "BASKETBALL", """
+BASKETBALL – Set Position for Straight-On Jump Shot
+• Feet: shoulder-width; toes angled slightly toward the rim (11 o’clock–1 o’clock). 
+• Knees: light flexion for spring; knees vertically over toes. 
+• Hips & spine: slight hip hinge with torso leaning marginally toward the rim. 
+• Arms: ball in front of forehead; elbows vertical; wrists ready to snap. 
+• Gaze: fix on the rim or upper backboard until release.
+"""
 
+    );
+    
+
+ 
     // application.properties에서 설정값 주입 받음
     @Value("${openai.api.key}")
     private String apiKey;
@@ -66,14 +120,16 @@ Now analyze the following:
         System.out.println("GPT method call complete");
         // 요청 본문 구성 (ChatGPT API 명세에 맞게 작성)
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-3.5-turbo");  // 사용할 GPT 모델 지정
+        requestBody.put("model", "gpt-4.1");  // 사용할 GPT 모델 지정
         //관절 좌표 요약
         List<String> kp = PoseJsonCompressor.compress(keypointsJsonList);
         System.out.println("Compressor Result :" + kp);
 
         // GPT에 보낼 프롬프트 구성 -> 추후에 사용자가 입력한 운동 종류를 프롬포트에 동적으로 할당해 더욱 정교한 피드백 생성성
         StringBuilder fullPrompt = new StringBuilder();
-        fullPrompt.append(promptHeader);
+        fullPrompt.append(COMMON_STRING);
+        String cp = CANONICAL.getOrDefault(exerciseType.toUpperCase(), "");
+        if (!cp.isEmpty()) fullPrompt.append("\n").append(cp);
         fullPrompt.append("\nExercise Type: ").append(exerciseType);
         fullPrompt.append("\njoint keypoints: ");
         for(String json : kp) { 

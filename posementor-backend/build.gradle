@@ -35,6 +35,7 @@ dependencies {
 	implementation 'org.apache.httpcomponents:httpmime:4.5.14'
 	implementation 'org.bytedeco:javacv-platform:1.5.8'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
+	implementation 'org.json:json:20230227'
 }
 
 tasks.named('test') {

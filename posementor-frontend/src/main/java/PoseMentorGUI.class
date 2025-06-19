@@ -1,0 +1,247 @@
+// Source code is decompiled from a .class file using FernFlower decompiler.
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.io.File;
+import java.io.IOException;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+public class PoseMentorGUI extends JFrame {
+   private CardLayout cardLayout;
+   private JPanel mainPanel;
+   private JTextField exerciseField;
+   private File selectedFile;
+   private JTextArea feedbackArea;
+   private JLabel loadingLabel;
+   private String exerciseName;
+   private JLabel updateLabel;
+   private static final String BOUNDARY = "PoseMentorBoundary";
+
+   public PoseMentorGUI() {
+      this.setTitle("PoseMentor 자세 분석");
+      this.setSize(650, 400);
+      this.setDefaultCloseOperation(3);
+      this.setLocationRelativeTo((Component)null);
+      this.cardLayout = new CardLayout();
+      this.mainPanel = new JPanel(this.cardLayout);
+      this.mainPanel.add(this.createStartPanel(), "start");
+      this.mainPanel.add(this.createUploadPanel(), "upload");
+      this.mainPanel.add(this.createLoadingPanel(), "loading");
+      this.mainPanel.add(this.createResultPanel(), "result");
+      this.add(this.mainPanel);
+      this.cardLayout.show(this.mainPanel, "start");
+   }
+
+   private JPanel createStartPanel() {
+      JPanel var1 = new JPanel(new BorderLayout());
+      JLabel var2 = new JLabel("PoseMentor에 오신 것을 환영합니다!", 0);
+      var2.setFont(new Font("맑은 고딕", 1, 18));
+      var2.setBorder(BorderFactory.createEmptyBorder(40, 0, 50, 0));
+      var1.add(var2, "North");
+      JPanel var3 = new JPanel(new GridLayout(2, 3, 15, 15));
+      String[] var4 = new String[]{"헬스", "골프", "볼링", "야구", "당구", "농구"};
+      String[] var5 = var4;
+      int var6 = var4.length;
+
+      for(int var7 = 0; var7 < var6; ++var7) {
+         String var8 = var5[var7];
+         JButton var9 = new JButton(var8);
+         var9.addActionListener((var2x) -> {
+            this.exerciseName = var8;
+            this.updateLabel.setText(String.format("<html>사용자의 %s 자세를 촬영한 동영상을 업로드하고 분석 시작 버튼을 눌러주세요!<br><br>  (선택한 운동과 다른 종류의영상을 업로드 시 결과가 부정확 할 수 있습니다.)</html>", this.exerciseName));
+            this.cardLayout.show(this.mainPanel, "upload");
+         });
+         var3.add(var9);
+      }
+
+      JPanel var10 = new JPanel(new FlowLayout());
+      var10.add(var3);
+      var1.add(var10, "Center");
+      return var1;
+   }
+
+   private JPanel createUploadPanel() {
+      JPanel var1 = new JPanel(new BorderLayout());
+      JPanel var2 = new JPanel(new BorderLayout());
+      JButton var3 = new JButton("←");
+      var3.setFont(new Font("맑은 고딕", 1, 18));
+      var3.setMargin(new Insets(10, 10, 80, 0));
+      var3.setFocusPainted(false);
+      var3.setContentAreaFilled(false);
+      var3.setBorderPainted(false);
+      var3.addActionListener((var1x) -> {
+         this.cardLayout.show(this.mainPanel, "start");
+      });
+      this.updateLabel = new JLabel("", 0);
+      var1.add(this.updateLabel, "North");
+      this.updateLabel.setFont(new Font("맑은 고딕", 1, 15));
+      var2.add(var3, "West");
+      var2.add(this.updateLabel, "Center");
+      var1.add(var2, "North");
+      JPanel var4 = new JPanel();
+      var4.setLayout(new BoxLayout(var4, 1));
+      JButton var5 = new JButton("영상 업로드");
+      JButton var6 = new JButton("분석 시작");
+      var4.add(var5);
+      var5.setAlignmentX(0.5F);
+      var5.setMaximumSize(new Dimension(130, 50));
+      var5.setFont(new Font("맑은 고딕", 1, 14));
+      var4.add(Box.createVerticalStrut(40));
+      var4.add(var6);
+      var6.setAlignmentX(0.5F);
+      var6.setMaximumSize(new Dimension(130, 50));
+      var6.setFont(new Font("맑은 고딕", 1, 14));
+      var1.add(var4, "Center");
+      var5.addActionListener((var1x) -> {
+         JFileChooser var2 = new JFileChooser();
+         int var3 = var2.showOpenDialog(this);
+         if (var3 == 0) {
+            this.selectedFile = var2.getSelectedFile();
+         }
+
+      });
+      var6.addActionListener((var1x) -> {
+         if (this.selectedFile == null) {
+            JOptionPane.showMessageDialog(this, "영상을 먼저 업로드하세요.");
+         } else {
+            this.cardLayout.show(this.mainPanel, "loading");
+            this.runFeedbackAsync();
+         }
+      });
+      return var1;
+   }
+
+   private JPanel createLoadingPanel() {
+      JPanel var1 = new JPanel(new BorderLayout());
+      this.loadingLabel = new JLabel("⏳ AI가 피드백을 생성 중입니다. 잠시만 기다려주세요.", 0);
+      var1.add(this.loadingLabel, "Center");
+      return var1;
+   }
+
+   private JPanel createResultPanel() {
+      JPanel var1 = new JPanel(new BorderLayout());
+      JPanel var2 = new JPanel(new FlowLayout(1, 10, 10));
+      var2.setName("framesCon");
+      JScrollPane var3 = new JScrollPane(var2);
+      var3.setPreferredSize(new Dimension(520, 180));
+      var1.add(var3, "North");
+      this.feedbackArea = new JTextArea();
+      this.feedbackArea.setEditable(false);
+      this.feedbackArea.setLineWrap(true);
+      this.feedbackArea.setWrapStyleWord(true);
+      JScrollPane var4 = new JScrollPane(this.feedbackArea);
+      var4.setPreferredSize(new Dimension(520, 300));
+      var1.add(var4, "Center");
+      JButton var5 = new JButton("다른 운동 피드백 받기");
+      var5.addActionListener((var2x) -> {
+         this.selectedFile = null;
+         this.feedbackArea.setText("");
+         var2.removeAll();
+         var2.revalidate();
+         var2.repaint();
+         this.cardLayout.show(this.mainPanel, "start");
+      });
+      var1.add(var5, "South");
+      return var1;
+   }
+
+   private void runFeedbackAsync() {
+      PoseMentorGUI$1 var1 = new PoseMentorGUI$1(this);
+      var1.execute();
+   }
+
+   private <T extends JComponent> T findByName(Container var1, String var2, Class<T> var3) {
+      Component[] var4 = var1.getComponents();
+      int var5 = var4.length;
+
+      for(int var6 = 0; var6 < var5; ++var6) {
+         Component var7 = var4[var6];
+         if (var7 instanceof JComponent var8) {
+            if (var2.equals(var8.getName())) {
+               return var8;
+            }
+
+            if (var7 instanceof Container var9) {
+               JComponent var10 = this.findByName(var9, var2, var3);
+               if (var10 != null) {
+                  return var10;
+               }
+            }
+         }
+      }
+
+      return null;
+   }
+
+   private String mapExerciseNameToEnum(String var1) {
+      String var10000;
+      switch (var1) {
+         case "헬스":
+            var10000 = "FITNESS";
+            break;
+         case "골프":
+            var10000 = "GOLF";
+            break;
+         case "볼링":
+            var10000 = "BOWLING";
+            break;
+         case "야구":
+            var10000 = "BASEBALL";
+            break;
+         case "당구":
+            var10000 = "BILLIARDS";
+            break;
+         case "농구":
+            var10000 = "BASKETBALL";
+            break;
+         default:
+            var10000 = "FITNESS";
+      }
+
+      return var10000;
+   }
+
+   private static HttpRequest.BodyPublisher ofMimeMultipartData(File var0, String var1) throws IOException {
+      ArrayList var2 = new ArrayList();
+      var2.add("--PoseMentorBoundary\r\n".getBytes());
+      var2.add("Content-Disposition: form-data; name=\"exerciseType\"\r\n\r\n".getBytes());
+      var2.add(var1.getBytes());
+      var2.add("\r\n".getBytes());
+      var2.add("--PoseMentorBoundary\r\n".getBytes());
+      var2.add(("Content-Disposition: form-data; name=\"file\"; filename=\"" + var0.getName() + "\"\r\n").getBytes());
+      var2.add("Content-Type: video/mp4\r\n\r\n".getBytes());
+      var2.add(Files.readAllBytes(var0.toPath()));
+      var2.add("\r\n".getBytes());
+      var2.add("--PoseMentorBoundary--\r\n".getBytes());
+      return BodyPublishers.ofByteArrays(var2);
+   }
+
+   public static void main(String[] var0) {
+      SwingUtilities.invokeLater(() -> {
+         (new PoseMentorGUI()).setVisible(true);
+      });
+   }
+}
