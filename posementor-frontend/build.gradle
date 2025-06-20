@@ -11,8 +11,8 @@ repositories {
 dependencies {
     implementation 'com.formdev:flatlaf:3.6'   
     implementation 'com.miglayout:miglayout-swing:11.0'
-    // 필요하면 IntelliJ 테마 팩도
-    // implementation 'com.formdev:flatlaf-intellij-themes:3.6'
+    implementation 'com.formdev:flatlaf-extras:3.3'
+
 }
 
 application {
