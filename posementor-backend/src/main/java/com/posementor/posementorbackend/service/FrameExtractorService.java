@@ -23,7 +23,7 @@ public class FrameExtractorService {
      */
     public List<File> extractFramesEveryHalfSecond(File videoFile, String outputDirPath) throws Exception {
         List<File> frameFiles = new ArrayList<>(); // 반환할 이미지 파일 리스트
-
+        System.out.println("Extract method call complete");
         try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFile)) {
             grabber.start(); // 영상 파일 열기
 

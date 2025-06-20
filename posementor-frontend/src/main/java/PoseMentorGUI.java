@@ -17,7 +17,6 @@ import java.util.List;
 import java.net.URL;
 import java.net.MalformedURLException;
 import com.formdev.flatlaf.FlatLightLaf;
-import com.formdev.flatlaf.extras.components.*;
 
 import net.miginfocom.swing.MigLayout;
 
@@ -44,7 +43,7 @@ public class PoseMentorGUI extends JFrame {
         super("PoseMentor 자세 분석");
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
-        setSize(650, 400);
+        setSize(650, 500);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -152,27 +151,43 @@ public class PoseMentorGUI extends JFrame {
         return panel;
     }
 
-    // ────────────────────────── 3. 로딩 화면 (작은 막대) ──────────────────────────
-    private JPanel createLoadingPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBorder(BorderFactory.createEmptyBorder(60, 0, 60, 0));
+   private JPanel createLoadingPanel() {
+    // 전체 패널: 중앙 정렬
+    JPanel panel = new JPanel(new GridBagLayout());
+    panel.setBorder(BorderFactory.createEmptyBorder(40, 20, 40, 20));
+    panel.setOpaque(false);
 
-        JLabel txt = new JLabel("⏳  AI가 피드백을 생성 중입니다. 잠시만 기다려 주세요!", SwingConstants.CENTER);
-        txt.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
-        panel.add(txt, BorderLayout.NORTH);
+    // 수직 박스: 안내 문구 ↑ + 로딩 바 ↓
+    Box vbox = Box.createVerticalBox();
+    vbox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        progressBar = new JProgressBar();
-        progressBar.setIndeterminate(true);
-        progressBar.setPreferredSize(new Dimension(220, 12)); // 작고 얇은 막대
-        progressBar.setBorderPainted(false);
+    // ── 안내 문구 ──
+    JLabel line1 = new JLabel("AI가 운동 자세를 분석하는 중입니다.", SwingConstants.CENTER);
+    line1.setFont(new Font("맑은 고딕", Font.BOLD, 18));   // 크기 ↑, 굵게
+    line1.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 가운데 정렬을 유지하기 위해 래퍼 패널을 사용
-        JPanel wrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        wrap.setOpaque(false);
-        wrap.add(progressBar);
-        panel.add(wrap, BorderLayout.CENTER);
-        return panel;
-    }
+    JLabel line2 = new JLabel("피드백을 생성 중이니 잠시만 기다려 주세요!", SwingConstants.CENTER);
+    line2.setFont(new Font("맑은 고딕", Font.PLAIN, 16)); // 크기 ↑
+    line2.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+    vbox.add(line1);
+    vbox.add(Box.createVerticalStrut(6));  // 문구 사이 여백
+    vbox.add(line2);
+    vbox.add(Box.createVerticalStrut(20)); // 문구 ↔ 로딩바 간 여백
+
+    // ── 인디케이터 막대 ──
+    JProgressBar bar = new JProgressBar();
+    bar.setIndeterminate(true);
+    bar.setPreferredSize(new Dimension(180, 12)); // 조금 더 넓고 두껍게
+    bar.setBorderPainted(false);
+    bar.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+    vbox.add(bar);
+    panel.add(vbox);                         // 중앙(GridBagLayout 기본 위치)
+
+    return panel;
+}
+
 
     // ────────────────────────── 4. 결과 화면 ──────────────────────────
     private JPanel createResultPanel() {
